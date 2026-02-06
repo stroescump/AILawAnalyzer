@@ -3,7 +3,9 @@ import json
 from fastapi import APIRouter, HTTPException, Request
 
 from app.domain.enums import OutputType, RunStatus
+from app.features.analysis.references_v1 import extract_reference_edges_v1, reference_edges_to_json
 from app.features.analysis.scoring import score_sustainability
+from app.features.analysis.segmentation_quality_v1 import compute_segmentation_quality_v1, quality_to_json
 from app.features.analysis.segmentation_v1 import segment_pages_to_structure
 from app.features.analysis.service import chunk_by_article, explain, extract_findings
 from app.features.analysis.structure_tree_v1 import build_structure_nodes_v1, structure_nodes_to_json
@@ -129,6 +131,18 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
         content_text=None,
     )
 
+    # Persist reference_graph_v1 artifact (best-effort extraction from chunk text).
+    ref_edges = extract_reference_edges_v1(
+        document_version_id=document_version_id,
+        chunks=persisted_chunks,
+    )
+    out_repo.create(
+        run_id=run.id,
+        output_type=OutputType.reference_graph_v1,
+        content_json=reference_edges_to_json(ref_edges),
+        content_text=None,
+    )
+
     out_repo.create(
         run_id=run.id,
         output_type=OutputType.extractor_json,
@@ -186,7 +200,12 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
         content_text=None,
     )
 
-    run_repo.mark_finished(run.id, status=RunStatus.succeeded, quality_summary_json=None)
+    # Segmentation quality summary (v1): stored on the run for observability.
+    q = compute_segmentation_quality_v1(
+        chunks=persisted_chunks,
+        page_numbers_present=[p.page_number for p in pages],
+    )
+    run_repo.mark_finished(run.id, status=RunStatus.succeeded, quality_summary_json=quality_to_json(q))
 
     return {
         "analysis_run_id": run.id,

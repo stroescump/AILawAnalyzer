@@ -12,7 +12,10 @@ class Segment:
     text: str
 
 
-_ART_RE = re.compile(r"^\s*Art\.?\s*(\d+[A-Za-z]?)\b", re.IGNORECASE)
+# Accept both:
+# - canonical headings: "Art. 12"
+# - amendment list items: "11. Art.12 se modifică..."
+_ART_RE = re.compile(r"^\s*(?:\d+\.)?\s*Art\.?\s*(\d+[A-Za-z]?)\b", re.IGNORECASE)
 _ALIN_RE = re.compile(r"^\s*\((\d+)\)\s+", re.IGNORECASE)
 
 

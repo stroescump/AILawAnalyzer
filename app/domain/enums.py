@@ -36,3 +36,4 @@ class OutputType(str, Enum):
     mechanisms_v1 = "mechanisms_v1"
     mechanism_validation_v1 = "mechanism_validation_v1"
     impacts_v1 = "impacts_v1"
+    change_list_v1 = "change_list_v1"

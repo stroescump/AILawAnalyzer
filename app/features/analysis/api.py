@@ -3,13 +3,14 @@ import json
 from fastapi import APIRouter, HTTPException, Request
 
 from app.domain.enums import OutputType, RunStatus
+from app.features.analysis.change_list_v1 import change_list_to_json, extract_change_list_v1
+from app.features.analysis.explainer_v1 import explain_v1
 from app.features.analysis.mechanism_validators_v1 import validate_mechanisms_v1
 from app.features.analysis.mechanisms_v1 import extract_mechanisms_v1, mechanisms_to_json
 from app.features.analysis.references_v1 import extract_reference_edges_v1, reference_edges_to_json
-from app.features.analysis.scoring import score_sustainability
 from app.features.analysis.segmentation_quality_v1 import compute_segmentation_quality_v1, quality_to_json
 from app.features.analysis.segmentation_v1 import segment_pages_to_structure
-from app.features.analysis.service import chunk_by_article, explain, extract_findings
+from app.features.analysis.service import chunk_by_article, extract_findings
 from app.features.analysis.structure_tree_v1 import build_structure_nodes_v1, structure_nodes_to_json
 from app.infra.repo_chunks import ChunkRepo
 from app.infra.repo_evidence import EvidenceRepo
@@ -85,13 +86,11 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
         if s.chunk_type == "ARTICLE" and s.label:
             key_to_id[f"ARTICLE::{s.label}"] = row.id
 
+    # v0 extractor is kept only as a temporary fallback for "findings".
+    # Citizen summary must be generated strictly from v1 mechanisms.
     full_text = "\n\n".join(t for _, t in page_texts)
     chunks = chunk_by_article(full_text)
     findings = extract_findings(pages=page_texts, chunks=chunks)
-    summary = explain(findings)
-
-    all_evidence = [e for f in findings for e in f.evidence]
-    index = score_sustainability(text=full_text, evidence=all_evidence, quality_level=quality_level)
 
     out_repo = OutputRepo(conn)
     ev_repo = EvidenceRepo(conn)
@@ -106,18 +105,6 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
                 page_number=e.page_number,
                 excerpt_text=e.quote,
                 article_label=f.label,
-            )
-
-    for c in index.components:
-        claim_id = f"sustainability:{c.dimension}:{c.rule_id}"
-        for e in c.evidence:
-            ev_repo.create(
-                analysis_run_id=run.id,
-                claim_id=claim_id,
-                document_version_id=document_version_id,
-                page_number=e.page_number,
-                excerpt_text=e.quote,
-                article_label=None,
             )
 
     # Persist structure_tree_v1 artifact from the chunks we just inserted.
@@ -154,6 +141,15 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
         content_text=None,
     )
 
+    # Persist change_list_v1 artifact: deterministic list of amendments with evidence.
+    change_items = extract_change_list_v1(chunks=persisted_chunks)
+    out_repo.create(
+        run_id=run.id,
+        output_type=OutputType.change_list_v1,
+        content_json=change_list_to_json(change_items),
+        content_text=None,
+    )
+
     validation_issues = validate_mechanisms_v1(mechs)
     out_repo.create(
         run_id=run.id,
@@ -161,6 +157,9 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
         content_json=json.dumps([issue.__dict__ for issue in validation_issues], ensure_ascii=False),
         content_text=None,
     )
+
+    # Impacts/scoring are intentionally disabled for now (trust posture):
+    # we keep mechanisms + evidence only until actor/action/object extraction is stronger.
 
     out_repo.create(
         run_id=run.id,
@@ -184,40 +183,19 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
         content_text=None,
     )
 
+    summary_v1 = explain_v1(mechanisms=mechs)
     out_repo.create(
         run_id=run.id,
         output_type=OutputType.explainer_summary,
         content_json=json.dumps(
-            {"bullets": summary.bullets, "limitations": summary.limitations},
+            {"bullets": summary_v1.bullets, "limitations": summary_v1.limitations},
             ensure_ascii=False,
         ),
         content_text=None,
     )
 
-    out_repo.create(
-        run_id=run.id,
-        output_type=OutputType.sustainability_index,
-        content_json=json.dumps(
-            {
-                "grade": index.grade,
-                "overall": index.overall,
-                "confidence": index.confidence,
-                "dimensions": index.dimensions,
-                "flags": index.flags,
-                "components": [
-                    {
-                        "dimension": c.dimension,
-                        "delta": c.delta,
-                        "rationale": c.rationale,
-                        "rule_id": c.rule_id,
-                    }
-                    for c in index.components
-                ],
-            },
-            ensure_ascii=False,
-        ),
-        content_text=None,
-    )
+    # Sustainability scoring is intentionally disabled for now (trust posture).
+    # We do not persist a sustainability_index output until it is evidence-backed and stable.
 
     # Segmentation quality summary (v1): stored on the run for observability.
     q = compute_segmentation_quality_v1(
@@ -226,11 +204,13 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
     )
     run_repo.mark_finished(run.id, status=RunStatus.succeeded, quality_summary_json=quality_to_json(q))
 
+    v1_chunk_count = len(persisted_chunks)
+
     return {
         "analysis_run_id": run.id,
         "bill_id": bill_id,
         "document_version_id": document_version_id,
-        "chunk_count": len(chunks),
+        "chunk_count": v1_chunk_count,
         "finding_count": len(findings),
         "findings": [
             {
@@ -243,14 +223,20 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
             for f in findings
         ],
         "citizen_summary": {
-            "bullets": summary.bullets,
-            "limitations": summary.limitations,
+            "bullets": summary_v1.bullets,
+            "limitations": summary_v1.limitations,
         },
-        "sustainability_index": {
-            "grade": index.grade,
-            "overall": index.overall,
-            "confidence": index.confidence,
-            "dimensions": index.dimensions,
-            "flags": index.flags,
-        },
+        "change_list": [
+            {
+                "change_id": c.change_id,
+                "action": c.action,
+                "target": c.target,
+                "target_raw": c.target_raw,
+                "new_text_excerpt": c.new_text_excerpt,
+                "confidence": c.confidence,
+                "evidence": [{"page_number": e.page_number, "quote": e.quote} for e in c.evidence],
+            }
+            for c in change_items
+        ],
+        "sustainability_index": None,
     }

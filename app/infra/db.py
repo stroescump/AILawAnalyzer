@@ -15,6 +15,8 @@ def connect(cfg: DbConfig) -> sqlite3.Connection:
     conn = sqlite3.connect(cfg.path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # Ensure the pragma is actually applied (SQLite can ignore it until a transaction boundary).
+    conn.commit()
     return conn
 
 
@@ -146,6 +148,87 @@ def migrate(conn: sqlite3.Connection) -> None:
           scheduled_at TEXT NOT NULL,
           locked_at TEXT,
           last_error TEXT
+        );
+
+        -- SME knowledge ingestion (PoC)
+        CREATE TABLE IF NOT EXISTS sme_claims (
+          id INTEGER PRIMARY KEY,
+          claim_id TEXT NOT NULL UNIQUE,
+          current_version INTEGER,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS sme_claim_versions (
+          id INTEGER PRIMARY KEY,
+          claim_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          content_json TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          approved_by TEXT,
+          created_at TEXT NOT NULL,
+          approved_at TEXT,
+          UNIQUE(claim_id, version)
+        );
+
+        CREATE TABLE IF NOT EXISTS knowledge_packs (
+          id INTEGER PRIMARY KEY,
+          pack_id TEXT NOT NULL UNIQUE,
+          current_version INTEGER,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS knowledge_pack_versions (
+          id INTEGER PRIMARY KEY,
+          pack_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          content_json TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          approved_by TEXT,
+          created_at TEXT NOT NULL,
+          approved_at TEXT,
+          UNIQUE(pack_id, version)
+        );
+
+        CREATE TABLE IF NOT EXISTS claim_templates (
+          id INTEGER PRIMARY KEY,
+          template_id TEXT NOT NULL UNIQUE,
+          current_version INTEGER,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS claim_template_versions (
+          id INTEGER PRIMARY KEY,
+          template_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          content_json TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          status TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          approved_by TEXT,
+          created_at TEXT NOT NULL,
+          approved_at TEXT,
+          UNIQUE(template_id, version)
+        );
+
+        CREATE TABLE IF NOT EXISTS knowledge_audit_log (
+          id INTEGER PRIMARY KEY,
+          actor TEXT NOT NULL,
+          action TEXT NOT NULL,
+          object_type TEXT NOT NULL,
+          object_id TEXT NOT NULL,
+          object_version INTEGER,
+          diff_json TEXT,
+          created_at TEXT NOT NULL
         );
         """
     )

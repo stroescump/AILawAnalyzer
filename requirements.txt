@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.34
+pydantic-settings>=2.7
+python-multipart>=0.0.20
+pypdf>=5.2
+pillow>=11.0
+pytesseract>=0.3.13
+requests>=2.32

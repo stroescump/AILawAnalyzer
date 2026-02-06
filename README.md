@@ -65,7 +65,7 @@ flowchart TD
   DB --> B[bills]
   DB --> D[documents]
   DB --> DV[document_versions]
-  BS --> FS[(data/blobs/{sha256}/original.pdf)]
+  BS --> FS["data/blobs/{sha256}/original.pdf"]
 ```
 
 ### Mermaid: target PoC pipeline (next milestones)

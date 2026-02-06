@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 
 from app.config import load_config
+from app.features.analysis.api import router as analysis_router
+from app.features.documents.api import router as documents_router
+from app.features.ingest.api import router as ingest_router
+from app.features.ocr.api import router as ocr_router
+from app.features.runs.api import router as runs_router
 from app.infra.db import DbConfig, connect, migrate
-from app.web.analysis import router as analysis_router
-from app.web.evidence import router as evidence_router
 from app.web.health import router as health_router
-from app.web.ocr import router as ocr_router
-from app.web.runs import router as runs_router
-from app.web.upload import router as upload_router
 
 
 def create_app() -> FastAPI:
@@ -19,11 +19,11 @@ def create_app() -> FastAPI:
     app.state.cfg = cfg
     app.state.db = conn
     app.include_router(health_router)
-    app.include_router(upload_router)
+    app.include_router(ingest_router)
     app.include_router(ocr_router)
     app.include_router(analysis_router)
     app.include_router(runs_router)
-    app.include_router(evidence_router)
+    app.include_router(documents_router)
     return app
 
 

@@ -1,0 +1,29 @@
+[project]
+name = "civic-sustainability-poc"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.34",
+  "pydantic-settings>=2.7",
+  "python-multipart>=0.0.20",
+  "pypdf>=5.2",
+  "pillow>=11.0",
+  "pytesseract>=0.3.13",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+no_implicit_optional = true
+strict_optional = true

@@ -10,7 +10,9 @@ class DbConfig:
 
 def connect(cfg: DbConfig) -> sqlite3.Connection:
     cfg.path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(cfg.path)
+    # Pareto: allow FastAPI threadpool usage with a single shared connection for PoC.
+    # Not for prod; later switch to per-request connections or a pool + Postgres.
+    conn = sqlite3.connect(cfg.path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn

@@ -6,3 +6,7 @@ pypdf>=5.2
 pillow>=11.0
 pytesseract>=0.3.13
 requests>=2.32
+
+# test
+pytest>=9.0
+httpx>=0.28

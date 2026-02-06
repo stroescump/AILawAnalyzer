@@ -13,7 +13,7 @@ The product goal is **high trust**: every claim must be backed by exact source e
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -U pip
-pip install fastapi uvicorn[standard] pydantic-settings python-multipart pypdf pillow pytesseract
+pip install -r requirements.txt
 ```
 
 ### 2) Start the API
@@ -30,6 +30,16 @@ uvicorn app.main:app --reload --port 8000
 curl -X POST "http://127.0.0.1:8000/bills/upload?title=Test%20bill" \
   -F "file=@sample.pdf;type=application/pdf"
 ```
+
+### 4) Run tests
+```bash
+. .venv/bin/activate
+pytest -q
+```
+
+Notes:
+- Tests include an integration test that uses `sample.pdf` from repo root.
+- FastAPI TestClient requires `httpx` (included in requirements).
 
 Artifacts:
 - SQLite DB: `data/app.sqlite3`

@@ -30,3 +30,8 @@ class OutputType(str, Enum):
     extractor_json = "extractor_json"
     explainer_summary = "explainer_summary"
     sustainability_index = "sustainability_index"
+
+    structure_tree_v1 = "structure_tree_v1"
+    reference_graph_v1 = "reference_graph_v1"
+    mechanisms_v1 = "mechanisms_v1"
+    impacts_v1 = "impacts_v1"

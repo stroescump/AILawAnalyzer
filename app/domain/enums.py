@@ -34,4 +34,5 @@ class OutputType(str, Enum):
     structure_tree_v1 = "structure_tree_v1"
     reference_graph_v1 = "reference_graph_v1"
     mechanisms_v1 = "mechanisms_v1"
+    mechanism_validation_v1 = "mechanism_validation_v1"
     impacts_v1 = "impacts_v1"

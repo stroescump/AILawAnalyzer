@@ -3,6 +3,8 @@ import json
 from fastapi import APIRouter, HTTPException, Request
 
 from app.domain.enums import OutputType, RunStatus
+from app.features.analysis.mechanism_validators_v1 import validate_mechanisms_v1
+from app.features.analysis.mechanisms_v1 import extract_mechanisms_v1, mechanisms_to_json
 from app.features.analysis.references_v1 import extract_reference_edges_v1, reference_edges_to_json
 from app.features.analysis.scoring import score_sustainability
 from app.features.analysis.segmentation_quality_v1 import compute_segmentation_quality_v1, quality_to_json
@@ -140,6 +142,23 @@ async def analyze_bill(request: Request, bill_id: int) -> dict[str, object]:
         run_id=run.id,
         output_type=OutputType.reference_graph_v1,
         content_json=reference_edges_to_json(ref_edges),
+        content_text=None,
+    )
+
+    # Persist mechanisms_v1 artifact (span-grounded, conservative triggers).
+    mechs = extract_mechanisms_v1(document_version_id=document_version_id, chunks=persisted_chunks)
+    out_repo.create(
+        run_id=run.id,
+        output_type=OutputType.mechanisms_v1,
+        content_json=mechanisms_to_json(mechs),
+        content_text=None,
+    )
+
+    validation_issues = validate_mechanisms_v1(mechs)
+    out_repo.create(
+        run_id=run.id,
+        output_type=OutputType.mechanism_validation_v1,
+        content_json=json.dumps([issue.__dict__ for issue in validation_issues], ensure_ascii=False),
         content_text=None,
     )
 

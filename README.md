@@ -72,26 +72,26 @@ flowchart TD
 ```mermaid
 flowchart TD
   subgraph Ingest
-    S[Scrape/Upload] --> V[Versioned document bytes]
+    S[Scrape or Upload] --> V[Versioned document bytes]
   end
 
   subgraph Parse
-    V --> Q[Quality triage Q1-Q4]
-    Q -->|Q1/Q2| TXT[Extract text]
+    V --> Q[Quality triage Q1 to Q4]
+    Q -->|Q1 or Q2| TXT[Extract text]
     Q -->|Q3| OCR[OCR per page]
-    TXT --> PAGES[Persist pages + page images]
+    TXT --> PAGES[Persist pages and page images]
     OCR --> PAGES
   end
 
   subgraph Analyze
     PAGES --> CH[Chunk by legal structure]
-    CH --> XREF[Cross-reference graph]
-    XREF --> EXT[Extractor (structured facts + evidence)]
-    EXT --> IDX[Sustainability index + confidence]
-    EXT --> EXP[Explainer (summary from extracted facts)]
+    CH --> XREF[Cross reference graph]
+    XREF --> EXT[Extractor: structured facts and evidence]
+    EXT --> IDX[Sustainability index and confidence]
+    EXT --> EXP[Explainer: summary from extracted facts]
   end
 
-  PAGES --> DB[(SQLite/Postgres later)]
+  PAGES --> DB[SQLite now, Postgres later]
   CH --> DB
   EXT --> DB
   IDX --> DB

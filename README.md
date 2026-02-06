@@ -59,9 +59,9 @@ Artifacts:
 ### Mermaid: current data flow
 ```mermaid
 flowchart TD
-  U[User] -->|POST /bills/upload (PDF)| API[FastAPI]
+  U[User] -->|POST /bills/upload PDF| API[FastAPI]
   API -->|store bytes by sha256| BS[Blob store on disk]
-  API -->|migrate + write rows| DB[(SQLite)]
+  API -->|migrate and write rows| DB[(SQLite)]
   DB --> B[bills]
   DB --> D[documents]
   DB --> DV[document_versions]

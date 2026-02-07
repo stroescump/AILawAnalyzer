@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+  <div class="row" style="justify-content: space-between;">
+    <h1>Create knowledge object</h1>
+    <a href="/admin/knowledge/knowledge?secret={{ secret }}">← back</a>
+  </div>
+
+  {% if error %}
+    <div class="card" style="border: 1px solid #b91c1c; background: #fef2f2;">
+      <strong>Error</strong>
+      <div class="muted">{{ error }}</div>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <form method="post" action="/admin/knowledge/knowledge/create?secret={{ secret }}">
+      <div class="row" style="gap: 12px; align-items: center;">
+        <div style="flex: 1;">
+          <label for="object_type"><strong>Type</strong></label>
+          <select id="object_type" name="object_type" style="width: 100%;">
+            <option value="sme_claim" {% if object_type == 'sme_claim' %}selected{% endif %}>sme_claim</option>
+            <option value="knowledge_pack" {% if object_type == 'knowledge_pack' %}selected{% endif %}>knowledge_pack</option>
+            <option value="claim_template" {% if object_type == 'claim_template' %}selected{% endif %}>claim_template</option>
+          </select>
+        </div>
+        <div style="flex: 2;">
+          <label for="object_id"><strong>Object ID</strong></label>
+          <input id="object_id" name="object_id" value="{{ object_id }}" style="width: 100%;" placeholder="e.g. ro.env.air.pm25.v1" />
+          <div class="muted" style="margin-top: 6px;">Use a stable, namespaced id. No spaces.</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top: 12px; gap: 12px;">
+        <button type="submit">Create</button>
+        <a class="muted" href="/admin/knowledge/knowledge?secret={{ secret }}">Cancel</a>
+      </div>
+
+      <p class="muted" style="margin-top: 10px;">
+        This calls the JSON API at <code>/api/admin/knowledge/{object_type}/{object_id}</code>.
+      </p>
+    </form>
+  </div>
+{% endblock %}

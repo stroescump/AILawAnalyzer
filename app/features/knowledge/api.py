@@ -1,8 +1,9 @@
-import json
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from app.features.knowledge.auth import require_admin
+from app.features.knowledge.errors import PublishValidationError
 from app.features.knowledge.validation import (
     validate_claim_template_publish,
     validate_knowledge_pack_publish,
@@ -10,7 +11,7 @@ from app.features.knowledge.validation import (
 )
 from app.infra.repo_knowledge import KnowledgeRepo, ObjectType
 
-router = APIRouter(prefix="/admin/knowledge", tags=["admin-knowledge"])
+router = APIRouter(prefix="/api/admin/knowledge", tags=["admin-knowledge"])
 
 
 def _actor(request: Request) -> str:
@@ -26,6 +27,7 @@ def _parse_object_type(s: str) -> ObjectType:
 
 @router.post("/{object_type}/{object_id}")
 def create_object(request: Request, object_type: str, object_id: str) -> dict[str, Any]:
+    require_admin(request)
     repo = KnowledgeRepo(request.app.state.db)
     ot = _parse_object_type(object_type)
     try:
@@ -37,6 +39,7 @@ def create_object(request: Request, object_type: str, object_id: str) -> dict[st
 
 @router.get("/{object_type}")
 def list_objects(request: Request, object_type: str) -> dict[str, Any]:
+    require_admin(request)
     repo = KnowledgeRepo(request.app.state.db)
     ot = _parse_object_type(object_type)
     objs = repo.list_objects(ot)
@@ -57,6 +60,7 @@ def list_objects(request: Request, object_type: str) -> dict[str, Any]:
 
 @router.get("/{object_type}/{object_id}")
 def get_object(request: Request, object_type: str, object_id: str) -> dict[str, Any]:
+    require_admin(request)
     repo = KnowledgeRepo(request.app.state.db)
     ot = _parse_object_type(object_type)
     obj = repo.get_object(ot, object_id)
@@ -104,19 +108,27 @@ def get_object(request: Request, object_type: str, object_id: str) -> dict[str, 
 def upsert_draft(
     request: Request, object_type: str, object_id: str, body: dict[str, Any]
 ) -> dict[str, Any]:
+    require_admin(request)
     repo = KnowledgeRepo(request.app.state.db)
     ot = _parse_object_type(object_type)
     try:
         res = repo.upsert_draft_version(ot, object_id=object_id, content=body, actor=_actor(request))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"draft_failed:{type(e).__name__}")
-    return {"object_type": ot, "object_id": res.object_id, "version": res.version, "content_hash": res.content_hash}
+    return {
+        "object_type": ot,
+        "object_id": res.object_id,
+        "version": res.version,
+        "content_hash": res.content_hash,
+    }
 
 
 @router.post("/{object_type}/{object_id}/publish")
 def publish(request: Request, object_type: str, object_id: str) -> dict[str, Any]:
+    require_admin(request)
     repo = KnowledgeRepo(request.app.state.db)
     ot = _parse_object_type(object_type)
+    actor = _actor(request)
 
     def _validator(content: dict[str, Any]) -> None:
         if ot == "sme_claim":
@@ -129,7 +141,20 @@ def publish(request: Request, object_type: str, object_id: str) -> dict[str, Any
             raise ValueError("invalid_object_type")
 
     try:
-        res = repo.publish(ot, object_id=object_id, actor=_actor(request), validate_fn=_validator)
+        res = repo.publish(ot, object_id=object_id, actor=actor, validate_fn=_validator)
+    except PublishValidationError as e:
+        issues = [i.__dict__ for i in e.issues]
+        repo.audit_validation_failure(actor=actor, object_type=ot, object_id=object_id, issues=issues)
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "publish_validation_failed", "issues": issues},
+        )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
-    return {"object_type": ot, "object_id": res.object_id, "version": res.version, "content_hash": res.content_hash}
+        raise HTTPException(status_code=409, detail={"error": str(e)})
+
+    return {
+        "object_type": ot,
+        "object_id": res.object_id,
+        "version": res.version,
+        "content_hash": res.content_hash,
+    }

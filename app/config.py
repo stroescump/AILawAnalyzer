@@ -5,6 +5,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class AppConfig:
     data_dir: Path
+    admin_secret: str
 
     @property
     def db_path(self) -> Path:
@@ -16,4 +17,5 @@ class AppConfig:
 
 
 def load_config() -> AppConfig:
-    return AppConfig(data_dir=Path("data"))
+    # PoC: hard-coded default; override via env later.
+    return AppConfig(data_dir=Path("data"), admin_secret="dev-secret")

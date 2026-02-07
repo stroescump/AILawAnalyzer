@@ -1,0 +1,67 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+  <div class="row" style="justify-content: space-between;">
+    <h1>{{ object_type }}/{{ object_id }}</h1>
+    <a href="/admin/knowledge/knowledge/{{ object_type }}?secret={{ secret }}">← back to list</a>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div><strong>Status:</strong> {{ obj.status }}</div>
+      <div><strong>Current version:</strong> {{ obj.current_version }}</div>
+      <div class="muted"><strong>Created:</strong> {{ obj.created_at }} by {{ obj.created_by }}</div>
+    </div>
+  </div>
+
+  <h2>Draft (version 0)</h2>
+  <div class="card">
+    <div class="row" style="justify-content: space-between; align-items: center;">
+      <p class="muted" style="margin: 0;">This is the draft content that will be validated on publish.</p>
+      <a href="/admin/knowledge/knowledge/{{ object_type }}/{{ object_id }}/edit?secret={{ secret }}">Edit / Publish</a>
+    </div>
+    <pre>{{ draft_json }}</pre>
+  </div>
+
+  <h2>Current published</h2>
+  <div class="card">
+    {% if current %}
+      <div class="row">
+        <div><strong>Version:</strong> {{ current.version }}</div>
+        <div><strong>Hash:</strong> <code>{{ current.content_hash }}</code></div>
+        <div class="muted"><strong>Approved:</strong> {{ current.approved_at }} by {{ current.approved_by }}</div>
+      </div>
+      <pre>{{ current.content | tojson(indent=2, ensure_ascii=False) }}</pre>
+    {% else %}
+      <div class="muted">No published version yet.</div>
+    {% endif %}
+  </div>
+
+  <h2>Published versions history</h2>
+  <div class="card">
+    {% if versions and versions|length > 0 %}
+      <table>
+        <thead>
+          <tr>
+            <th>version</th>
+            <th>hash</th>
+            <th>approved_by</th>
+            <th>approved_at</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in versions %}
+            <tr>
+              <td>{{ v.version }}</td>
+              <td><code>{{ v.content_hash }}</code></td>
+              <td>{{ v.approved_by }}</td>
+              <td class="muted">{{ v.approved_at }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="muted">No published versions yet.</div>
+    {% endif %}
+  </div>
+{% endblock %}

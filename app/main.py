@@ -5,6 +5,7 @@ from app.features.analysis.api import router as analysis_router
 from app.features.documents.api import router as documents_router
 from app.features.ingest.api import router as ingest_router
 from app.features.knowledge.api import router as knowledge_router
+from app.features.knowledge.web import router as knowledge_web_router
 from app.features.ocr.api import router as ocr_router
 from app.features.runs.api import router as runs_router
 from app.infra.db import DbConfig, connect, migrate
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
     app.include_router(runs_router)
     app.include_router(documents_router)
     app.include_router(knowledge_router)
+    app.include_router(knowledge_web_router)
     return app
 
 

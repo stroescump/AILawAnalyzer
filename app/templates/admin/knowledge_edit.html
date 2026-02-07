@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+  <div class="row" style="justify-content: space-between;">
+    <h1>Edit {{ object_type }}/{{ object_id }}</h1>
+    <a href="/admin/knowledge/knowledge/{{ object_type }}/{{ object_id }}?secret={{ secret }}">← back</a>
+  </div>
+
+  {% if error %}
+    <div class="card" style="border: 1px solid #b91c1c; background: #fef2f2;">
+      <strong>Error</strong>
+      <div class="muted">{{ error }}</div>
+    </div>
+  {% endif %}
+
+  {% if issues and issues|length > 0 %}
+    <div class="card" style="border: 1px solid #b45309; background: #fffbeb;">
+      <strong>Validation issues</strong>
+      <ul>
+        {% for it in issues %}
+          <li>
+            <code>{{ it.path }}</code>
+            <span class="muted">({{ it.code }})</span>
+            — {{ it.message }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <form method="post" action="/admin/knowledge/knowledge/{{ object_type }}/{{ object_id }}/edit?secret={{ secret }}">
+      <label for="draft_json"><strong>Draft JSON (version 0)</strong></label>
+      <textarea id="draft_json" name="draft_json" style="width: 100%; min-height: 420px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">{{ draft_json }}</textarea>
+
+      <div class="row" style="margin-top: 12px; gap: 12px;">
+        <button type="submit" name="action" value="save">Save draft</button>
+        <button type="submit" name="action" value="publish">Publish</button>
+        <a class="muted" href="/admin/knowledge/knowledge/{{ object_type }}/{{ object_id }}?secret={{ secret }}">Cancel</a>
+      </div>
+
+      <p class="muted" style="margin-top: 10px;">
+        Save calls the JSON API at <code>/api/admin/knowledge/{{ object_type }}/{{ object_id }}/draft</code>.
+        Publish calls <code>/api/admin/knowledge/{{ object_type }}/{{ object_id }}/publish</code>.
+      </p>
+    </form>
+  </div>
+{% endblock %}

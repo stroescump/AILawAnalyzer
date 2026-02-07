@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "Admin" }}</title>
+    <style>
+      body { font-family: system-ui, -apple-system, sans-serif; margin: 24px; }
+      a { color: #0b5fff; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code, pre { background: #f6f8fa; }
+      pre { padding: 12px; overflow: auto; }
+      .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+      .muted { color: #6b7280; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+      input[type=text], input[type=password], textarea { width: 100%; padding: 8px; }
+      textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      button { padding: 8px 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="row" style="justify-content: space-between;">
+      <div class="row">
+        <a href="/admin/knowledge">Knowledge</a>
+        <span class="muted">PoC</span>
+      </div>
+      <div class="muted">Auth via <code>X-Admin-Secret</code> header</div>
+    </div>
+    <hr />
+    {% block content %}{% endblock %}
+  </body>
+</html>

@@ -86,6 +86,34 @@ class KnowledgeRepo:
             for r in rows
         ]
 
+    def list_versions(self, object_type: ObjectType, object_id: str, limit: int = 50) -> list[KnowledgeVersion]:
+        _, ver_table, id_col = self._tables(object_type)
+        rows = self._conn.execute(
+            f"""
+            SELECT {id_col} AS object_id, version, content_json, content_hash, status,
+                   created_by, approved_by, created_at, approved_at
+            FROM {ver_table}
+            WHERE {id_col} = ? AND version > 0
+            ORDER BY version DESC
+            LIMIT ?
+            """,
+            (object_id, limit),
+        ).fetchall()
+        return [
+            KnowledgeVersion(
+                object_id=str(r["object_id"]),
+                version=int(r["version"]),
+                content=json.loads(r["content_json"]),
+                content_hash=str(r["content_hash"]),
+                status=r["status"],
+                created_by=r["created_by"],
+                approved_by=r["approved_by"],
+                created_at=r["created_at"],
+                approved_at=r["approved_at"],
+            )
+            for r in rows
+        ]
+
     def upsert_draft_version(
         self,
         object_type: ObjectType,
@@ -157,7 +185,7 @@ class KnowledgeRepo:
     ) -> PublishResult:
         """Publish current draft (version 0) as next version.
 
-        validate_fn(content) must raise ValueError on invalid content.
+        validate_fn(content) may raise PublishValidationError.
         """
 
         obj_table, ver_table, id_col = self._tables(object_type)
@@ -226,6 +254,23 @@ class KnowledgeRepo:
                 _now_iso(),
             ),
         )
+
+    def audit_validation_failure(
+        self,
+        actor: str,
+        object_type: ObjectType,
+        object_id: str,
+        issues: list[dict[str, Any]],
+    ) -> None:
+        self._audit(
+            actor=actor,
+            action="publish_validation_failed",
+            object_type=object_type,
+            object_id=object_id,
+            object_version=0,
+            diff={"issues": issues},
+        )
+        self._conn.commit()
 
 
 def parse_status(s: str) -> KnowledgeStatus:

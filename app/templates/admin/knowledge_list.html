@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+  <h1>{{ object_type }}</h1>
+  <div class="row" style="margin-bottom: 12px; justify-content: space-between; align-items: center;">
+    <a href="/admin/knowledge/knowledge?secret={{ secret }}">← back</a>
+    <a href="/admin/knowledge/knowledge/create?secret={{ secret }}">+ Create</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>id</th>
+        <th>status</th>
+        <th>current_version</th>
+        <th>created_by</th>
+        <th>created_at</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+        <tr>
+          <td><a href="/admin/knowledge/knowledge/{{ object_type }}/{{ it.object_id }}?secret={{ secret }}">{{ it.object_id }}</a></td>
+          <td>{{ it.status }}</td>
+          <td>{{ it.current_version }}</td>
+          <td>{{ it.created_by }}</td>
+          <td class="muted">{{ it.created_at }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

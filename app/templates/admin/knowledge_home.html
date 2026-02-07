@@ -1,0 +1,16 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+  <h1>Knowledge Admin</h1>
+  <div class="card">
+    <div class="row" style="justify-content: space-between; align-items: center;">
+      <div class="row">
+        <a href="/admin/knowledge/knowledge/sme_claim?secret={{ secret }}">SME Claims</a>
+        <a href="/admin/knowledge/knowledge/knowledge_pack?secret={{ secret }}">Knowledge Packs</a>
+        <a href="/admin/knowledge/knowledge/claim_template?secret={{ secret }}">Claim Templates</a>
+      </div>
+      <a href="/admin/knowledge/knowledge/create?secret={{ secret }}">+ Create</a>
+    </div>
+    <p class="muted">Create/edit/publish is available; publish is validated and errors are shown inline.</p>
+  </div>
+{% endblock %}
